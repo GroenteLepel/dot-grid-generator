@@ -1,0 +1,23 @@
+[project]
+name = "dot-paper-generator"
+version = "0.1.0"
+description = "A generator for dot paper notes (vibe-coded)"
+authors = [
+    {name = "Daniël Kok",email = "github@danieljkok.nl"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<4"
+dependencies = [
+    "reportlab>=4.0",
+]
+
+[tool.poetry]
+packages = [{include = "dot_paper_generator"}]
+
+
+[tool.poetry.group.dev.dependencies]
+types-reportlab = "^4.4.10.20260408"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
