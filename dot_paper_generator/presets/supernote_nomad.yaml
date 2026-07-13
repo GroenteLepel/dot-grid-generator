@@ -6,5 +6,5 @@ page_height: 1872
 unit: "px"
 dot_spacing: 60
 bg_color: "#FFFFFF"
-dot_color: "#929292"
+dot_color: "#3B3B3B"
 dot_radius_pt: 1.5
