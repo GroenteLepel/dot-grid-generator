@@ -42,28 +42,49 @@ from dot_paper_generator.generator import generate_dot_paper
 # Generate with default settings
 generate_dot_paper()
 
-# Customize the output
+# Customize the output (dimensions in inches)
 generate_dot_paper(
     output_path="my_dot_paper.pdf",
-    page_width_inches=8.5,       # US Letter width
-    page_height_inches=11.0,     # US Letter height
-    dot_spacing_mm=5.0,          # Distance between dots
-    bg_color="#F3E4D2",          # Background color (hex)
-    dot_color="#929292",         # Dot color (hex)
-    dot_radius_pt=0.5,          # Dot size in points
-    margin_mm=5.0,              # Page margin
+    page_width=8.5,        # US Letter width
+    page_height=11.0,      # US Letter height
+    unit="in",             # "in", "mm", "cm", "m", "px", "pt"
+    dot_spacing=0.2,       # Distance between dots (in unit)
+    bg_color="#F3E4D2",   # Background color (hex)
+    dot_color="#929292",  # Dot color (hex)
+    dot_radius_pt=0.5,    # Dot size in points
+    margin=5.0,           # Page margin (in unit)
+)
+
+# Mix units: A5 page in mm, spacing in mm
+generate_dot_paper(
+    page_width=148,
+    page_height=210,
+    unit="mm",
+    dot_spacing=5.0,
+)
+
+# Override spacing unit independently
+generate_dot_paper(
+    page_width=6.32,
+    page_height=8.17,
+    unit="in",
+    dot_spacing=5.0,
+    dot_spacing_unit="mm",  # spacing stays in mm regardless of page unit
 )
 ```
 
 ### Default Settings
 
-| Parameter            | Default     | Description                        |
-|----------------------|-------------|------------------------------------|
-| `output_path`        | `dot_paper.pdf` | Output file path               |
-| `page_width_inches`  | `6.32`      | Page width in inches               |
-| `page_height_inches` | `8.17`      | Page height in inches              |
-| `dot_spacing_mm`     | `5.0`       | Spacing between dots in mm         |
-| `bg_color`           | `#F3E4D2`   | Background color (warm cream)      |
-| `dot_color`          | `#929292`   | Dot color (medium gray)            |
-| `dot_radius_pt`      | `0.5`       | Dot radius in points               |
-| `margin_mm`          | `None`      | Margin in mm (defaults to spacing) |
+| Parameter          | Default         | Description                                              |
+|--------------------|-----------------|----------------------------------------------------------|
+| `output_path`      | `dot_paper.pdf` | Output file path                                         |
+| `page_width`       | `6.32`          | Page width (in `unit`)                                   |
+| `page_height`      | `8.17`          | Page height (in `unit`)                                  |
+| `unit`             | `in`            | Unit for page dimensions: `in`, `mm`, `cm`, `m`, `px`, `pt` |
+| `dot_spacing`      | `0.2`           | Spacing between dots (in `dot_spacing_unit` or `unit`)   |
+| `dot_spacing_unit` | `None`          | Override unit for `dot_spacing` (defaults to `unit`)     |
+| `bg_color`         | `#F3E4D2`       | Background color (warm cream)                            |
+| `dot_color`        | `#929292`       | Dot color (medium gray)                                  |
+| `dot_radius_pt`    | `0.5`           | Dot radius in points                                     |
+| `margin`           | `None`          | Page margin (in `margin_unit` or `unit`; defaults to `dot_spacing`) |
+| `margin_unit`      | `None`          | Override unit for `margin` (defaults to `unit`)          |
