@@ -1,0 +1,10 @@
+# SuperNote Nomad — e-ink white dot paper
+# Screen: 1404×1872 px @ 300 PPI (4.68×6.24 in physical)
+# dot_spacing 60 px ≈ 5 mm physical; dot_radius_pt 1.5 scales from iPad's 0.5 pt
+page_width: 1404
+page_height: 1872
+unit: "px"
+dot_spacing: 60
+bg_color: "#FFFFFF"
+dot_color: "#929292"
+dot_radius_pt: 1.5
