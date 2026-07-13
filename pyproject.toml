@@ -13,7 +13,7 @@ classifiers = [
 dependencies = ["pyyaml>=6.0", "reportlab>=4.0"]
 
 [dependency-groups]
-dev = ["pytest>=8", "types-reportlab>=4.4.10.20260408,<5"]
+dev = ["pytest>=8", "types-reportlab>=4.5.1.20260521,<5"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
