@@ -2,6 +2,8 @@ from reportlab.lib.colors import HexColor
 from reportlab.lib.units import cm, inch, mm
 from reportlab.pdfgen import canvas
 
+from dot_paper_generator.presets import load_preset
+
 
 def generate_dot_paper(
     output_path: str = "dot_paper.pdf",
@@ -43,10 +45,7 @@ def generate_dot_paper(
 
 
 def main() -> None:
-    generate_dot_paper(
-        page_width=6.32,
-        page_height=7.6,
-    )
+    generate_dot_paper(output_path="dot_paper.pdf", **load_preset("supernote_nomad"))
 
 
 def _resolve_points(
