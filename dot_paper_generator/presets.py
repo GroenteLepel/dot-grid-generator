@@ -1,3 +1,5 @@
+"""Preset configuration management for dot-grid generator."""
+
 from pathlib import Path
 
 import yaml

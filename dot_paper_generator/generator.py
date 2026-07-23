@@ -1,12 +1,70 @@
-from reportlab.lib.colors import HexColor
-from reportlab.lib.units import cm, inch, mm
-from reportlab.pdfgen import canvas
+"""Main orchestrator for dot-grid generation.
+
+Routes to PDF or PNG backends based on output_format parameter.
+Provides CLI interface for command-line usage.
+"""
+
+import argparse
+from typing import Literal
 
 from dot_paper_generator.presets import load_preset
+from dot_paper_generator import pdf_generator, png_generator
+
+
+def main() -> None:
+    """CLI entry point."""
+    parser = argparse.ArgumentParser(
+        description="Generate customizable dot-grid PDFs and PNGs"
+    )
+    parser.add_argument(
+        "preset",
+        nargs="?",
+        default="supernote_nomad",
+        help="Preset name or path to YAML file (default: supernote_nomad)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        dest="output_path",
+        default=None,
+        help="Output file path (default: dot_paper.pdf or dot_paper.png)",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["pdf", "png"],
+        default="pdf",
+        help="Output format (default: pdf)",
+    )
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=300,
+        help="DPI for PNG output (default: 300, ignored for PDF)",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Suppress generation output message",
+    )
+
+    args = parser.parse_args()
+
+    preset = load_preset(args.preset)
+    output_path = _resolve_output_path(args.output_path, args.format)
+
+    generate_dot_paper(
+        output_format=args.format,
+        output_path=output_path,
+        dpi=args.dpi if args.format == "png" else None,
+        verbose=not args.quiet,
+        **preset,
+    )
 
 
 def generate_dot_paper(
     output_path: str = "dot_paper.pdf",
+    output_format: Literal["pdf", "png"] = "pdf",
     page_width: float = 6.32,
     page_height: float = 8.17,
     unit: str = "in",
@@ -17,196 +75,108 @@ def generate_dot_paper(
     dot_radius_pt: float = 0.5,
     margin: float | None = None,
     margin_unit: str | None = None,
-) -> None:
-    """Generate a dot-grid PDF with a centered grid and center cross."""
-    page_width_pts, page_height_pts, spacing, margin_pts = _resolve_points(
+    dpi: int | None = None,
+    verbose: bool = True,
+) -> str:
+    """Generate a dot-grid PDF or PNG with centered grid and center cross.
+
+    Args:
+        output_path: File path where output will be saved
+        output_format: Output format ("pdf" or "png", default: "pdf")
+        page_width: Page width in specified units
+        page_height: Page height in specified units
+        unit: Unit for page dimensions ("in", "mm", "cm", etc.)
+        dot_spacing: Spacing between dots in specified units
+        dot_spacing_unit: Unit for dot spacing (defaults to page unit)
+        bg_color: Background color as hex string (e.g., "#FFFFFF")
+        dot_color: Dot color as hex string (e.g., "#000000")
+        dot_radius_pt: Dot radius in points
+        margin: Margin from edges (defaults to dot_spacing)
+        margin_unit: Unit for margin (defaults to page unit)
+        dpi: Dots per inch for PNG rendering (default 300, ignored for PDF)
+        verbose: Print generation status (default True)
+
+    Returns:
+        File path of generated output file.
+
+    Raises:
+        ValueError: If output_format is not "pdf" or "png"
+    """
+    if output_format not in ("pdf", "png"):
+        raise ValueError(
+            f"Invalid output_format: {output_format!r}. Must be 'pdf' or 'png'."
+        )
+
+    dpi = _ensure_dpi_for_png(output_format, dpi)
+    backend_params = _prepare_backend_parameters(
+        output_path,
         page_width,
         page_height,
         unit,
         dot_spacing,
         dot_spacing_unit,
+        bg_color,
+        dot_color,
+        dot_radius_pt,
         margin,
         margin_unit,
-    )
-    center_x, center_y = page_width_pts / 2, page_height_pts / 2
-
-    pdf = canvas.Canvas(output_path, pagesize=(page_width_pts, page_height_pts))
-    _draw_background(pdf, page_width_pts, page_height_pts, bg_color)
-
-    dots = _compute_dot_positions(
-        center_x, center_y, page_width_pts, page_height_pts, spacing, margin_pts
-    )
-    _draw_dots(pdf, dots, dot_color, dot_radius_pt)
-
-    pdf.save()
-    print(
-        f"Generated: {output_path} ({page_width}×{page_height} {unit}, {len(dots)} dots)"
+        verbose,
     )
 
-
-def main() -> None:
-    generate_dot_paper(output_path="dot_paper.pdf", **load_preset("supernote_nomad"))
+    return _route_to_backend(output_format, backend_params, dpi)
 
 
-def _resolve_points(
+def _resolve_output_path(provided_path: str | None, output_format: str) -> str:
+    """Resolve output file path, using format-appropriate default if not provided."""
+    if provided_path is not None:
+        return provided_path
+    return "dot_paper.png" if output_format == "png" else "dot_paper.pdf"
+
+
+def _ensure_dpi_for_png(output_format: str, dpi: int | None) -> int | None:
+    """Ensure PNG format has a DPI value (defaults to 300 if not specified)."""
+    if output_format == "png" and dpi is None:
+        return 300
+    return dpi
+
+
+def _prepare_backend_parameters(
+    output_path: str,
     page_width: float,
     page_height: float,
     unit: str,
     dot_spacing: float,
     dot_spacing_unit: str | None,
-    margin: float | None,
-    margin_unit: str | None,
-) -> tuple[float, float, float, float]:
-    """Convert all user-supplied dimensions to ReportLab points.
-
-    Returns (page_width_pts, page_height_pts, spacing, margin_pts).
-    """
-    spacing_unit = dot_spacing_unit or unit
-    page_width_pts = _to_points(page_width, unit)
-    page_height_pts = _to_points(page_height, unit)
-    spacing = _to_points(dot_spacing, spacing_unit)
-    margin_pts = spacing if margin is None else _to_points(margin, margin_unit or unit)
-    return page_width_pts, page_height_pts, spacing, margin_pts
-
-
-def _draw_background(
-    pdf: canvas.Canvas, page_width_pts: float, page_height_pts: float, bg_color: str
-) -> None:
-    pdf.setFillColor(HexColor(bg_color))
-    pdf.rect(0, 0, page_width_pts, page_height_pts, stroke=0, fill=1)
-
-
-def _compute_dot_positions(
-    center_x: float,
-    center_y: float,
-    page_width_pts: float,
-    page_height_pts: float,
-    spacing: float,
-    margin_pts: float,
-) -> set[tuple[float, float]]:
-    dots = _grid_dots(
-        center_x, center_y, page_width_pts, page_height_pts, spacing, margin_pts
-    )
-    dots |= _center_cross_dots(
-        center_x, center_y, page_width_pts, page_height_pts, spacing, margin_pts
-    )
-    dots |= _corner_marker_dots(
-        center_x, center_y, page_width_pts, page_height_pts, spacing
-    )
-    return dots
-
-
-def _draw_dots(
-    pdf: canvas.Canvas,
-    dots: set[tuple[float, float]],
+    bg_color: str,
     dot_color: str,
     dot_radius_pt: float,
-) -> None:
-    pdf.setFillColor(HexColor(dot_color))
-    pdf.setStrokeColor(HexColor(dot_color))
-    for dot_x, dot_y in dots:
-        pdf.circle(dot_x, dot_y, dot_radius_pt, stroke=0, fill=1)
+    margin: float | None,
+    margin_unit: str | None,
+    verbose: bool,
+) -> dict[str, float | int | str | bool | None]:
+    """Prepare parameters common to all rendering backends."""
+    return {
+        "output_path": output_path,
+        "page_width": page_width,
+        "page_height": page_height,
+        "unit": unit,
+        "dot_spacing": dot_spacing,
+        "dot_spacing_unit": dot_spacing_unit,
+        "bg_color": bg_color,
+        "dot_color": dot_color,
+        "dot_radius_pt": dot_radius_pt,
+        "margin": margin,
+        "margin_unit": margin_unit,
+        "verbose": verbose,
+    }
 
 
-def _grid_dots(
-    center_x: float,
-    center_y: float,
-    page_width_pts: float,
-    page_height_pts: float,
-    spacing: float,
-    margin_pts: float,
-) -> set[tuple[float, float]]:
-    dots: set[tuple[float, float]] = set()
-    cols_half = int(center_x // spacing)
-    rows_half = int(center_y // spacing)
-    for col in range(-cols_half, cols_half + 1):
-        for row in range(-rows_half, rows_half + 1):
-            dot_x = center_x + col * spacing
-            dot_y = center_y + row * spacing
-            if _within_margin(dot_x, page_width_pts, margin_pts) and _within_margin(
-                dot_y, page_height_pts, margin_pts
-            ):
-                dots.add((dot_x, dot_y))
-    return dots
-
-
-def _center_cross_dots(
-    center_x: float,
-    center_y: float,
-    page_width_pts: float,
-    page_height_pts: float,
-    spacing: float,
-    margin_pts: float,
-) -> set[tuple[float, float]]:
-    """Half-spacing dots along both axes marking the exact page centre."""
-    dots: set[tuple[float, float]] = set()
-    half_spacing = spacing / 2
-    for direction in (-1, 1):
-        cross_x = center_x + direction * half_spacing
-        if _within_margin(cross_x, page_width_pts, margin_pts):
-            dots.add((cross_x, center_y))
-        cross_y = center_y + direction * half_spacing
-        if _within_margin(cross_y, page_height_pts, margin_pts):
-            dots.add((center_x, cross_y))
-    return dots
-
-
-def _corner_marker_dots(
-    center_x: float,
-    center_y: float,
-    page_width_pts: float,
-    page_height_pts: float,
-    spacing: float,
-) -> set[tuple[float, float]]:
-    """Half-spacing dots at the 1/3 and 2/3 grid divisions (3×3 corner markers)."""
-    dots: set[tuple[float, float]] = set()
-    half_spacing = spacing / 2
-    third_x = _nearest_grid_coord(page_width_pts / 3, center_x, spacing)
-    twothird_x = _nearest_grid_coord(2 * page_width_pts / 3, center_x, spacing)
-    third_y = _nearest_grid_coord(page_height_pts / 3, center_y, spacing)
-    twothird_y = _nearest_grid_coord(2 * page_height_pts / 3, center_y, spacing)
-    # (grid_x, grid_y, direction_x, direction_y) — directions toward outside
-    corners = [
-        (third_x, twothird_y, -1, +1),  # upper-left:  left & up
-        (twothird_x, twothird_y, +1, +1),  # upper-right: right & up
-        (third_x, third_y, -1, -1),  # lower-left:  left & down
-        (twothird_x, third_y, +1, -1),  # lower-right: right & down
-    ]
-    for grid_x, grid_y, direction_x, direction_y in corners:
-        dots.add((grid_x + direction_x * half_spacing, grid_y))
-        dots.add((grid_x, grid_y + direction_y * half_spacing))
-    return dots
-
-
-def _within_margin(coord: float, limit: float, margin: float) -> bool:
-    return margin <= coord <= limit - margin
-
-
-def _nearest_grid_coord(target: float, center: float, spacing: float) -> float:
-    return center + round((target - center) / spacing) * spacing
-
-
-def _to_points(value: float, unit: str) -> float:
-    """Convert a dimension from *unit* to ReportLab points."""
-    factor = _UNIT_TO_POINTS.get(unit.lower())
-    if factor is None:
-        valid = ", ".join(sorted(_UNIT_TO_POINTS))
-        raise ValueError(f"Unknown unit {unit!r}. Valid options: {valid}")
-    return value * factor
-
-
-_UNIT_TO_POINTS: dict[str, float] = {
-    "in": inch,
-    "inch": inch,
-    "inches": inch,
-    "mm": mm,
-    "cm": cm,
-    "m": cm * 100,
-    "px": 1.0,  # PDF standard: 1 px = 1 pt at 72 dpi
-    "pt": 1.0,
-    "point": 1.0,
-    "points": 1.0,
-}
+def _route_to_backend(output_format: str, backend_params: dict, dpi: int | None) -> str:
+    """Route parameters to appropriate PDF or PNG rendering backend."""
+    if output_format == "pdf":
+        return pdf_generator.generate_pdf(**backend_params)
+    else:  # png
+        return png_generator.generate_png(**backend_params, dpi=dpi)
 
 
 if __name__ == "__main__":

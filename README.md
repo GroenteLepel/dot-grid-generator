@@ -88,3 +88,54 @@ generate_dot_paper(
 | `dot_radius_pt`    | `0.5`           | Dot radius in points                                     |
 | `margin`           | `None`          | Page margin (in `margin_unit` or `unit`; defaults to `dot_spacing`) |
 | `margin_unit`      | `None`          | Override unit for `margin` (defaults to `unit`)          |
+
+## PNG Output
+
+Generate high-quality PNG files at configurable DPI (default 300 DPI):
+
+```bash
+# CLI: Generate 300 DPI PNG with preset
+poetry run python -m dot_paper_generator --format png --dpi 300 -o grid.png ipad_goodnotes
+
+# CLI: Generate 150 DPI PNG for screen display
+poetry run python -m dot_paper_generator --format png --dpi 150 supernote_nomad
+```
+
+### Python API
+
+```python
+from dot_paper_generator import generate_dot_paper
+
+# Generate PNG at 300 DPI (high-quality print)
+generate_dot_paper(
+    output_format="png",
+    output_path="grid.png",
+    dpi=300,
+    page_width=8.5,
+    page_height=11,
+    unit="in",
+)
+
+# Generate 150 DPI PNG with custom preset
+generate_dot_paper(
+    output_format="png",
+    dpi=150,
+    **load_preset("ipad_goodnotes")
+)
+```
+
+### DPI Options
+
+| DPI | Use Case |
+|-----|----------|
+| 72 | Screen display only |
+| 150 | Balanced quality/size |
+| 300 | High-quality print (default) |
+| 600 | Very high-quality print (large file) |
+
+**Note:** PNG rendering requires optional ReportLab dependencies. On macOS/Linux, install with:
+```bash
+pip install 'reportlab[rlPyCairo]'
+```
+If dependencies aren't available, PNG generation will raise an informative error and PDF output remains fully functional.
+
