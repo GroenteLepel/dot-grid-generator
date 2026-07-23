@@ -110,11 +110,11 @@ class TestGenerateDotPaper:
     @pytest.mark.parametrize(
         "unit,width,height",
         [
-            ("in", 6.0, 8.0),
-            ("mm", 150.0, 200.0),
-            ("cm", 15.0, 20.0),
-            ("pt", 432.0, 576.0),
-            ("px", 432.0, 576.0),
+            ("in", 1.0, 2.0),
+            ("mm", 10.0, 20.0),
+            ("cm", 1.0, 2.0),
+            ("pt", 10.0, 20.0),
+            ("px", 20.0, 20.0),
         ],
     )
     def test_all_supported_units_produce_output(self, unit, width, height):

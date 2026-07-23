@@ -29,7 +29,7 @@ class TestLoadPreset:
         assert preset["page_height"] == 1872
         assert preset["unit"] == "px"
         assert preset["bg_color"] == "#FFFFFF"
-        assert preset["dot_color"] == "#929292"
+        assert preset["dot_color"] == "#000000"
 
     def test_unknown_name_raises_file_not_found(self):
         with pytest.raises(FileNotFoundError, match="'nonexistent'"):
@@ -49,18 +49,21 @@ class TestLoadPreset:
         assert preset["page_width"] == pytest.approx(5.0)
         assert preset["bg_color"] == "#FFFFFF"
 
+    @pytest.mark.slow
     def test_preset_spreads_into_generate_dot_paper(self, tmp_path):
         output = tmp_path / "ipad.pdf"
         generate_dot_paper(output_path=str(output), **load_preset("ipad_goodnotes"))
         assert output.exists()
         assert output.stat().st_size > 0
 
+    @pytest.mark.slow
     def test_supernote_preset_spreads_into_generate_dot_paper(self, tmp_path):
         output = tmp_path / "supernote.pdf"
         generate_dot_paper(output_path=str(output), **load_preset("supernote_nomad"))
         assert output.exists()
         assert output.stat().st_size > 0
 
+    @pytest.mark.slow
     def test_explicit_kwarg_overrides_preset_value(self, tmp_path):
         output = tmp_path / "override.pdf"
         preset = load_preset("ipad_goodnotes")

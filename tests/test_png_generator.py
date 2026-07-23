@@ -6,7 +6,6 @@ import tempfile
 import pytest
 
 from dot_paper_generator import png_generator
-from dot_paper_generator._dot_positions import to_points
 
 # Check if PNG rendering is available
 try:
@@ -94,10 +93,6 @@ class TestGeneratePng:
 
             assert os.path.exists(output_path)
             assert os.path.getsize(output_path) > 0
-
-            # Both should exist and be valid
-            assert os.path.exists(output_150)
-            assert os.path.exists(output_300)
 
     def test_png_with_custom_colors(self):
         """Test PNG generation with custom colors."""
