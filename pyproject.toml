@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "types-reportlab>=4.5.1.20260521,<5"]
+dev = ["pytest>=8", "types-reportlab>=4.5.1.20260807,<5"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
